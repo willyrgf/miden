@@ -881,6 +881,124 @@ fn unchecked_shr() {
 }
 
 #[test]
+fn overflowing_shl() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::overflowing_shl
+        end";
+
+    // shift by 0
+    let a: u64 = rand_value();
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 0;
+
+    let c = (a as u128) << b;
+    let (d1, d0, c1, c0) = split_u128(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift by 31 (max lower limb of b)
+    let b: u32 = 31;
+    let c = (a as u128) << b;
+    let (d1, d0, c1, c0) = split_u128(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift by 32 (min for upper limb of b)
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 32;
+    let c = (a as u128) << b;
+    let (d1, d0, c1, c0) = split_u128(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift by 33
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 33;
+    let c = (a as u128) << b;
+    let (d1, d0, c1, c0) = split_u128(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift 64 by 58
+    let a = 64_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 58;
+    let c = (a as u128) << b;
+    let (d1, d0, c1, c0) = split_u128(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+}
+
+#[test]
+fn overflowing_shr() {
+    let source = "
+        use.std::math::u64
+        begin
+            exec.u64::overflowing_shr
+        end";
+
+    // shift by 0
+    let a: u64 = rand_value();
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 0;
+
+    let c = a >> b;
+    let (c1, c0) = split_u64(c);
+    let d = a % 2u64.pow(b);
+    let (d1, d0) = split_u64(d);
+    // let (c1, c0, d1, d0) = split_u128(c);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift by 31 (max lower limb of b)
+    let b: u32 = 31;
+
+    let c = a >> b;
+    let (c1, c0) = split_u64(c);
+    let d = a % 2u64.pow(b);
+    let (d1, d0) = split_u64(d);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift by 32 (min for upper limb of b)
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 32;
+    let c = a >> b;
+    let (c1, c0) = split_u64(c);
+    let d = a % 2u64.pow(b);
+    let (d1, d0) = split_u64(d);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift by 33
+    let a = 1_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 33;
+    let c = a >> b;
+    let (c1, c0) = split_u64(c);
+    let d = a % 2u64.pow(b);
+    let (d1, d0) = split_u64(d);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+
+    // shift 64 by 58
+    let a = 64_u64;
+    let (a1, a0) = split_u64(a);
+    let b: u32 = 58;
+    let c = a >> b;
+    let (c1, c0) = split_u64(c);
+    let d = a % 2u64.pow(b);
+    let (d1, d0) = split_u64(d);
+
+    build_test!(source, &[5, a0, a1, b as u64]).expect_stack(&[d1, d0, c1, c0, 5]);
+}
+
+#[test]
 fn unchecked_rotl() {
     let source = "
         use.std::math::u64
