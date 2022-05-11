@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::{build_test, Felt, MIN_STACK_DEPTH};
 use sha2::{Digest, Sha256};
 use vm_core::utils::IntoBytes;
@@ -44,7 +46,10 @@ fn sha256_2_to_1_hash() {
     let test = build_test!(source, &i_words);
     // first 8 elements of stack top holds sha256 digest,
     // while remaining 8 elements are zeroed
+    let start = Instant::now();
     test.expect_stack(&digest_words);
+    let elapsed = start.elapsed();
+    println!("expect_stack elapsed: {:?}", elapsed);
 }
 
 // HELPER FUNCTIONS

@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::{
     parse_op_token, AssemblyContext, AssemblyError, CodeBlock, Operation, Token, TokenStream,
 };
@@ -18,20 +20,39 @@ pub fn parse_code_blocks(
         return Err(AssemblyError::unexpected_eof(start_pos));
     }
 
+    let start = Instant::now();
     // parse the sequence of blocks and add each block to the list
     let mut blocks = Vec::new();
     while let Some(parser) = BlockParser::next(tokens)? {
         let block = parser.parse(tokens, context, num_proc_locals)?;
         blocks.push(block);
     }
+    let elapsed = start.elapsed();
+    println!(
+        "parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().parser.parse() elapsed: {:?}",
+        elapsed
+    );
 
     // make sure at least one block has been read
     if blocks.is_empty() {
+        let start = Instant::now();
         let start_op = tokens.read_at(start_pos).expect("no start token");
+        let elapsed = start.elapsed();
+        println!(
+        "parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().tokens.read_at() elapsed: {:?}",
+        elapsed
+    );
         Err(AssemblyError::empty_block(start_op))
     } else {
+        let start = Instant::now();
         // build a binary tree out of the parsed list of blocks
-        Ok(combine_blocks(blocks))
+        let r = combine_blocks(blocks);
+        let elapsed = start.elapsed();
+        println!(
+        "parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks() elapsed: {:?}",
+        elapsed
+    );
+        Ok(r)
     }
 }
 
@@ -253,12 +274,17 @@ impl BlockParser {
 pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
     // merge consecutive Span blocks
     let mut merged_blocks: Vec<CodeBlock> = Vec::with_capacity(blocks.len());
+    let start = Instant::now();
     blocks.drain(0..).for_each(|block| {
+    let start2 = Instant::now();
         if block.is_span() {
             if let Some(CodeBlock::Span(last_span)) = merged_blocks.last_mut() {
                 // this is guaranteed to execute because we know that the block is a span
                 if let CodeBlock::Span(span) = block {
+                    let start3 = Instant::now();
                     last_span.append(span);
+                    let elapsed = start3.elapsed();
+                    println!("parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks().blocks.for_each loop last_span.append() elapsed: {:?}", elapsed);
                 }
             } else {
                 merged_blocks.push(block);
@@ -266,7 +292,11 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
         } else {
             merged_blocks.push(block);
         }
+    let elapsed = start2.elapsed();
+    println!("parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks().blocks.for_each loop elapsed: {:?}", elapsed);
     });
+    let elapsed = start.elapsed();
+    println!("parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks().blocks.for_each elapsed: {:?}", elapsed);
 
     // build a binary tree of blocks joining them using Join blocks
     let mut blocks = merged_blocks;
@@ -277,12 +307,15 @@ pub fn combine_blocks(mut blocks: Vec<CodeBlock>) -> CodeBlock {
             blocks.pop()
         };
 
+        let start = Instant::now();
         let mut grouped_blocks = Vec::new();
         core::mem::swap(&mut blocks, &mut grouped_blocks);
         let mut grouped_blocks = group_vector_elements::<CodeBlock, 2>(grouped_blocks);
         grouped_blocks.drain(0..).for_each(|pair| {
             blocks.push(CodeBlock::new_join(pair));
         });
+        let elapsed = start.elapsed();
+        println!("parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks().grouped_blocks elapsed: {:?}", elapsed);
 
         if let Some(block) = last_block {
             blocks.push(block);

@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use processor::{ExecutionError, ExecutionTrace, Process, VmStateIterator};
 use proptest::prelude::*;
 pub use vm_core::{program::Script, Felt, FieldElement, ProgramInputs, MIN_STACK_DEPTH};
@@ -78,7 +80,10 @@ impl Test {
     /// test will result in the expected final stack state.
     pub fn expect_stack(&self, final_stack: &[u64]) {
         let expected = convert_to_stack(final_stack);
+        let start = Instant::now();
         let result = self.get_last_stack_state();
+        let elapsed = start.elapsed();
+        println!("get_last_stack_state elapsed: {:?}", elapsed);
 
         assert_eq!(expected, result);
     }
@@ -136,8 +141,17 @@ impl Test {
     /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
     /// resulting execution trace or error.
     pub fn execute(&self) -> Result<ExecutionTrace, ExecutionError> {
+        let start = Instant::now();
         let script = self.compile();
-        processor::execute(&script, &self.inputs)
+        let elapsed = start.elapsed();
+        println!("compile() elapsed: {:?}", elapsed);
+
+        let start = Instant::now();
+        let r = processor::execute(&script, &self.inputs);
+        let elapsed = start.elapsed();
+        println!("processor::execute() elapsed: {:?}", elapsed);
+
+        r
     }
 
     /// Compiles the test's source to a Script and executes it with the tests inputs. Returns a
@@ -150,9 +164,17 @@ impl Test {
 
     /// Returns the last state of the stack after executing a test.
     pub fn get_last_stack_state(&self) -> [Felt; MIN_STACK_DEPTH] {
+        let start = Instant::now();
         let trace = self.execute().unwrap();
+        let elapsed = start.elapsed();
+        println!("execute().unwrap() elapsed: {:?}", elapsed);
 
-        trace.last_stack_state()
+        let start = Instant::now();
+        let r = trace.last_stack_state();
+        let elapsed = start.elapsed();
+        println!("last_stack_state() elapsed: {:?}", elapsed);
+
+        r
     }
 }
 

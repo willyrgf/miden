@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::{fmt, hasher, Digest, Felt, FieldElement, Operation};
 use winter_utils::flatten_slice_elements;
 
@@ -100,7 +102,10 @@ impl Span {
         for batch in other.op_batches {
             ops.extend_from_slice(&batch.ops);
         }
+        let start = Instant::now();
         let (op_batches, hash) = batch_ops(ops);
+        let elapsed = start.elapsed();
+        println!("parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks().blocks.for_each loop last_span.append() batch_ops elapsed: {:?}", elapsed);
         self.op_batches = op_batches;
         self.hash = hash;
     }
@@ -242,7 +247,10 @@ fn batch_ops(ops: Vec<Operation>) -> (Vec<OpBatch>, Digest) {
         batches.push(batch);
     }
 
+    let start = Instant::now();
     let hash = hasher::hash_elements(flatten_slice_elements(&batch_groups));
+    let elapsed = start.elapsed();
+    println!("parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks().combine_blocks().blocks.for_each loop last_span.append() batch_ops.hash_elements() elapsed: {:?}", elapsed);
 
     (batches, hash)
 }

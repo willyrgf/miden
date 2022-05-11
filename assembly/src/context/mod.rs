@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::{CodeBlock, ProcMap, Procedure, MODULE_PATH_DELIM};
 use winter_utils::collections::BTreeMap;
 
@@ -66,9 +68,29 @@ impl<'a> AssemblyContext<'a> {
     /// # Panics
     /// Panics if a procedure with the specified label already exists in this context.
     pub fn add_local_proc(&mut self, proc: Procedure) {
+        let start = Instant::now();
         let label = proc.label();
+        let elapsed = start.elapsed();
+        println!(
+            "parse_module().tokens.read() loop proc.label() elapsed: {:?}",
+            elapsed
+        );
+
+        let start = Instant::now();
         assert!(!self.contains_proc(label), "duplicate procedure: {}", label);
+        let elapsed = start.elapsed();
+        println!(
+            "parse_module().tokens.read() loop assert() elapsed: {:?}",
+            elapsed
+        );
+
+        let start = Instant::now();
         self.local_procs.insert(label.to_string(), proc);
+        let elapsed = start.elapsed();
+        println!(
+            "parse_module().tokens.read() loop local_procs.insert() elapsed: {:?}",
+            elapsed
+        );
     }
 
     /// Adds an imported procedure to this context.

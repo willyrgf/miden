@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 use super::{
     combine_blocks, parse_code_blocks, AssemblyContext, AssemblyError, CodeBlock, Token,
     TokenStream,
@@ -66,9 +68,16 @@ impl Procedure {
         }
         tokens.advance();
 
+        let start = Instant::now();
         // parse procedure body, and handle memory allocation/deallocation of locals if any are declared
         let code_root = parse_proc_blocks(tokens, context, num_locals)?;
+        let elapsed = start.elapsed();
+        println!(
+            "parse_module().tokens.read() loop parse().parse_proc_blocks() elapsed: {:?}",
+            elapsed
+        );
 
+        let start = Instant::now();
         // consume the 'end' token
         match tokens.read() {
             None => Err(AssemblyError::unmatched_proc(
@@ -81,6 +90,11 @@ impl Procedure {
                 )),
             },
         }?;
+        let elapsed = start.elapsed();
+        println!(
+            "parse_module().tokens.read() loop parse().tokens.read()match() elapsed: {:?}",
+            elapsed
+        );
         tokens.advance();
 
         // build and return the procedure
@@ -101,8 +115,14 @@ pub fn parse_proc_blocks(
     context: &AssemblyContext,
     num_proc_locals: u32,
 ) -> Result<CodeBlock, AssemblyError> {
+    let start = Instant::now();
     // parse the procedure body
     let body = parse_code_blocks(tokens, context, num_proc_locals)?;
+    let elapsed = start.elapsed();
+    println!(
+        "parse_module().tokens.read() loop parse_proc_blocks().parse_code_blocks() elapsed: {:?}",
+        elapsed
+    );
 
     if num_proc_locals == 0 {
         // if no allocation of locals is required, return the procedure body
@@ -123,6 +143,13 @@ pub fn parse_proc_blocks(
     let dealloc_ops = vec![Operation::Push(-locals_felt), Operation::FmpUpdate];
     blocks.push(CodeBlock::new_span(dealloc_ops));
 
+    let start = Instant::now();
     // combine the local memory alloc/dealloc blocks with the procedure body code block
-    Ok(combine_blocks(blocks))
+    let r = combine_blocks(blocks);
+    let elapsed = start.elapsed();
+    println!(
+        "parse_module().tokens.read() loop parse_proc_blocks().combine_blocks() elapsed: {:?}",
+        elapsed
+    );
+    Ok(r)
 }
